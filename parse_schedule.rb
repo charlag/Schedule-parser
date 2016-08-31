@@ -1,4 +1,5 @@
 require 'spreadsheet'
+require 'icalendar'
 
 book = Spreadsheet.open '4.xls'
 sheet = book.worksheet 'ИКПИ-31-32,ИКВТ-31'
@@ -69,18 +70,37 @@ records.each do |record|
     end
 end
 
+schedule_times = [ [[9, 0], [10, 35]], [[10, 45], [12, 20]], [[13, 0], [14, 35]], [[14, 45], [16, 20]], [[16, 30], [18, 5]] ]
+
+cal = Icalendar::Calendar.new
+start_day = Date.new(2016, 8, 29)
 schedule.each_with_index do |week, week_num|
     puts "Week number #{week_num + 1}"
     week.each_with_index do |day, day_num|
-        puts "#{week_days[day_num]}"
-        day.each do |record|
+        current_date = start_day + week_num * 7 + day_num
+        puts "#{week_days[day_num]} #{current_date}"
+        day.each_with_index do |record, time_index|
+            print "#{times_of_day[time_index]} "
             if !record
                 print 'Nothing! Yay!'
             else
+                time_bounds = schedule_times[time_index]
+                puts "#{current_date.year} #{current_date.month} #{current_date.day} #{time_bounds[0][0]} #{time_bounds[0][1]}"
+                e = Icalendar::Event.new
+                e.dtstart = DateTime.civil(current_date.year, current_date.month, current_date.day, time_bounds[0][0], time_bounds[0][1])
+                e.dtend = DateTime.civil(current_date.year, current_date.month, current_date.day, time_bounds[1][0], time_bounds[1][1])
+                e.summary = record&.text
+                cal.add_event(e)
                 print record&.time_of_day, ' ', record&.text
             end
             puts
         end
         puts '---'
     end
+end
+
+cal.publish
+ical_string = cal.to_ical
+File.open('schedule.ics', 'w+') do |file|
+    file.write(ical_string)
 end
