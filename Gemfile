@@ -4,3 +4,4 @@ source "https://rubygems.org"
 
 gem 'spreadsheet'
 gem 'icalendar'
+gem 'telegram-bot-ruby'
